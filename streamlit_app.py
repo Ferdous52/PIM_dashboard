@@ -34,29 +34,9 @@ if not st.session_state.logged_in:
         """
         <style>
 
-        /* -----------------------------------------------
-           FULL SCREEN LOGIN
-        ------------------------------------------------ */
-
-        html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        [data-testid="stAppViewContainer"] {
-            height: 100vh !important;
-            min-height: 100vh !important;
-        }
-
-        [data-testid="stMain"] {
-            height: 100vh !important;
-            min-height: 100vh !important;
-            overflow: hidden !important;
-        }
-
-        /* -----------------------------------------------
+        /* =================================================
            LOGIN BACKGROUND
-        ------------------------------------------------ */
+        ================================================= */
 
         .stApp {
             background:
@@ -68,16 +48,18 @@ if not st.session_state.logged_in:
                 ) !important;
         }
 
-        /* -----------------------------------------------
-           MAIN LOGIN CONTAINER
-        ------------------------------------------------ */
+
+        /* =================================================
+           LOGIN MAIN CONTAINER
+        ================================================= */
 
         .main .block-container {
-            height: 100vh !important;
+
+            /* Use minimum height instead of fixed height */
             min-height: 100vh !important;
 
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
+            padding-top: 30px !important;
+            padding-bottom: 30px !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
 
@@ -86,65 +68,86 @@ if not st.session_state.logged_in:
             justify-content: center !important;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            PIM TITLE
-        ------------------------------------------------ */
+        ================================================= */
 
         .pim-title {
+
             text-align: center;
+
             color: white;
+
             font-size: 42px;
+
             font-weight: 700;
 
             margin-top: 0 !important;
+
             margin-bottom: 5px !important;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            SUBTITLE
-        ------------------------------------------------ */
+        ================================================= */
 
         .pim-subtitle {
+
             text-align: center;
+
             color: #CBD5E1;
+
             font-size: 17px;
 
             margin-top: 0 !important;
+
             margin-bottom: 20px !important;
         }
 
-        /* -----------------------------------------------
-           LOGIN BOX
-        ------------------------------------------------ */
+
+        /* =================================================
+           LOGIN FORM
+        ================================================= */
 
         [data-testid="stForm"] {
-            background: rgba(15, 23, 42, 0.95);
+
+            background:
+                rgba(15, 23, 42, 0.95);
 
             padding: 30px !important;
 
             border-radius: 18px;
 
-            border: 1px solid rgba(255,255,255,0.18);
+            border:
+                1px solid
+                rgba(255,255,255,0.18);
 
             box-shadow:
                 0px 10px 40px
                 rgba(0,0,0,0.45);
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            LOGIN LABELS
-        ------------------------------------------------ */
+        ================================================= */
 
         [data-testid="stForm"] label {
+
             color: #E5E7EB !important;
+
             font-weight: 500 !important;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            LOGIN INPUTS
-        ------------------------------------------------ */
+        ================================================= */
 
         [data-testid="stForm"] input {
+
             background-color:
                 rgba(255,255,255,0.08) !important;
 
@@ -157,15 +160,16 @@ if not st.session_state.logged_in:
             border-radius: 8px !important;
         }
 
-        /* Input placeholder */
 
         [data-testid="stForm"] input::placeholder {
+
             color: #94A3B8 !important;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            LOGIN BUTTON
-        ------------------------------------------------ */
+        ================================================= */
 
         [data-testid="stFormSubmitButton"] button {
 
@@ -186,6 +190,7 @@ if not st.session_state.logged_in:
             font-weight: 600 !important;
         }
 
+
         [data-testid="stFormSubmitButton"] button:hover {
 
             background-color: #1D4ED8 !important;
@@ -193,12 +198,106 @@ if not st.session_state.logged_in:
             color: white !important;
         }
 
-        /* -----------------------------------------------
-           REMOVE EXTRA SPACING
-        ------------------------------------------------ */
 
-        [data-testid="stForm"] [data-testid="stVerticalBlock"] {
-            gap: 0.7rem;
+        /* =================================================
+           SMALL SCREEN
+        ================================================= */
+
+        @media (max-height: 700px) {
+
+            .main .block-container {
+
+                justify-content: flex-start !important;
+
+                padding-top: 25px !important;
+
+                padding-bottom: 25px !important;
+            }
+
+            .pim-title {
+
+                font-size: 34px;
+
+                margin-bottom: 3px !important;
+            }
+
+            .pim-subtitle {
+
+                font-size: 15px;
+
+                margin-bottom: 15px !important;
+            }
+
+            [data-testid="stForm"] {
+
+                padding: 22px !important;
+            }
+        }
+
+
+        /* =================================================
+           VERY SMALL SCREEN
+        ================================================= */
+
+        @media (max-height: 550px) {
+
+            .main .block-container {
+
+                justify-content: flex-start !important;
+
+                padding-top: 15px !important;
+
+                padding-bottom: 15px !important;
+            }
+
+            .pim-title {
+
+                font-size: 28px;
+            }
+
+            .pim-subtitle {
+
+                font-size: 13px;
+
+                margin-bottom: 10px !important;
+            }
+
+            [data-testid="stForm"] {
+
+                padding: 18px !important;
+            }
+        }
+
+
+        /* =================================================
+           MOBILE WIDTH
+        ================================================= */
+
+        @media (max-width: 600px) {
+
+            .main .block-container {
+
+                padding-left: 0.7rem !important;
+
+                padding-right: 0.7rem !important;
+            }
+
+            .pim-title {
+
+                font-size: 32px;
+            }
+
+            .pim-subtitle {
+
+                font-size: 14px;
+            }
+
+            [data-testid="stForm"] {
+
+                padding: 22px !important;
+
+                border-radius: 14px;
+            }
         }
 
         </style>
@@ -317,11 +416,12 @@ else:
         """
         <style>
 
-        /* -----------------------------------------------
+        /* =================================================
            DASHBOARD BACKGROUND
-        ------------------------------------------------ */
+        ================================================= */
 
         .stApp {
+
             background:
                 linear-gradient(
                     135deg,
@@ -331,9 +431,10 @@ else:
                 ) !important;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            FULL WIDTH DASHBOARD
-        ------------------------------------------------ */
+        ================================================= */
 
         .main .block-container {
 
@@ -350,9 +451,10 @@ else:
             padding-bottom: 2rem !important;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            DASHBOARD TITLE
-        ------------------------------------------------ */
+        ================================================= */
 
         .dashboard-title {
 
@@ -365,9 +467,10 @@ else:
             margin-bottom: 5px;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            DASHBOARD SUBTITLE
-        ------------------------------------------------ */
+        ================================================= */
 
         .dashboard-subtitle {
 
@@ -378,9 +481,10 @@ else:
             margin-bottom: 25px;
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            METRIC CARDS
-        ------------------------------------------------ */
+        ================================================= */
 
         [data-testid="stMetric"] {
 
@@ -397,18 +501,40 @@ else:
                 rgba(15,23,42,0.08);
         }
 
-        /* -----------------------------------------------
+
+        /* =================================================
            SIDEBAR
-        ------------------------------------------------ */
+        ================================================= */
 
         [data-testid="stSidebar"] {
 
             background-color: #0F172A;
         }
 
+
         [data-testid="stSidebar"] * {
 
             color: white !important;
+        }
+
+
+        /* =================================================
+           DASHBOARD MOBILE
+        ================================================= */
+
+        @media (max-width: 600px) {
+
+            .main .block-container {
+
+                padding-left: 1rem !important;
+
+                padding-right: 1rem !important;
+            }
+
+            .dashboard-title {
+
+                font-size: 26px;
+            }
         }
 
         </style>
@@ -464,10 +590,6 @@ else:
             unsafe_allow_html=True
         )
 
-
-        # -------------------------------------------------
-        # FULL WIDTH METRICS
-        # -------------------------------------------------
 
         col1, col2, col3, col4 = st.columns(4)
 
@@ -590,4 +712,3 @@ else:
         st.info(
             "Reports will appear here."
         )
-
