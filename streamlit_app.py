@@ -102,7 +102,6 @@ if not st.session_state.logged_in:
         color: white;
     }
 
-    /* Small screens */
     @media (max-width: 600px) {
 
         .pim-title {
@@ -118,10 +117,8 @@ if not st.session_state.logged_in:
         [data-testid="stForm"] {
             padding: 20px;
         }
-
     }
 
-    /* Short screens */
     @media (max-height: 700px) {
 
         .pim-title {
@@ -132,7 +129,6 @@ if not st.session_state.logged_in:
             padding-top: 15px !important;
             padding-bottom: 20px !important;
         }
-
     }
 
     </style>
@@ -145,7 +141,9 @@ if not st.session_state.logged_in:
     )
 
     st.markdown(
-        '<div class="pim-subtitle">Monitor &nbsp;•&nbsp; Analyze &nbsp;•&nbsp; Improve</div>',
+        '<div class="pim-subtitle">'
+        'Monitor &nbsp;•&nbsp; Analyze &nbsp;•&nbsp; Improve'
+        '</div>',
         unsafe_allow_html=True
     )
 
@@ -216,478 +214,6 @@ if not st.session_state.logged_in:
 
 
 # ============================================================
-# LOAD EXCEL DATA
-# ============================================================
-
-@st.cache_data
-def load_data():
-
-    # Put your Excel file in the same folder as app.py
-    file_path = "Compile_LP PIM_Classroom Observation Monthly Summary_June 2026.xlsx"
-
-    df = pd.read_excel(
-        file_path,
-        sheet_name="JFO",
-        skiprows=17,
-        header=None
-    )
-
-
-    # --------------------------------------------------------
-    # CREATE COLUMN NAMES
-    # --------------------------------------------------------
-
-    main_header = df.iloc[0].ffill()
-    month_header = df.iloc[1]
-
-    columns = []
-
-    for main, month in zip(main_header, month_header):
-
-        if pd.notna(month):
-
-            columns.append(f"{main}_{month}")
-
-        else:
-
-            columns.append(str(main))
-
-
-    df.columns = columns
-
-    df = df.iloc[2:].reset_index(drop=True)
-
-
-    # --------------------------------------------------------
-    # CHANGE DATE FORMAT
-    # --------------------------------------------------------
-
-    def change_date_format(col):
-
-        if "_" in col:
-
-            prefix, date = col.rsplit("_", 1)
-
-            try:
-
-                date = pd.to_datetime(date)
-
-                return f"{prefix}_{date.strftime('%b')}"
-
-            except:
-
-                return col
-
-        return col
-
-
-    df.columns = [change_date_format(col) for col in df.columns]
-
-
-    # --------------------------------------------------------
-    # REMOVE EMPTY DATA
-    # --------------------------------------------------------
-
-    df = df.dropna(axis=1, how="all")
-
-    df = df.dropna(subset=["School Name"])
-
-    if "S/N" in df.columns:
-
-        df = df.drop(columns=["S/N"])
-
-
-    # --------------------------------------------------------
-    # IDENTIFY COLUMNS
-    # --------------------------------------------------------
-
-    minimum_standard_cols = [
-        col for col in df.columns
-        if col.startswith("Meeting Minimum Standards By Grade?")
-    ]
-
-
-    priority_cols = [
-        col for col in df.columns
-        if col.startswith(
-            "Teacher's Priority Area"
-        )
-    ]
-
-
-    total_visit_cols = [
-        col for col in df.columns
-        if col.startswith(
-            "Total Number of Visits Per Month"
-        )
-    ]
-
-
-    # --------------------------------------------------------
-    # CONVERT MINIMUM STANDARD
-    # --------------------------------------------------------
-
-    for col in minimum_standard_cols:
-
-        df[col] = df[col].map({
-            "No": 0,
-            "Yes": 1
-        })
-
-
-    # --------------------------------------------------------
-    # CONVERT PRIORITY AREA
-    # --------------------------------------------------------
-
-    priority_mapping = {
-
-        "0: No Priority Areas Achieved": 0,
-
-        "1: Mastered Instructional Routine": 1,
-
-        "2: Mastered Basic Skills": 2,
-
-        "3: Mastered Advanced Skills": 3
-    }
-
-
-    for col in priority_cols:
-
-        df[col] = df[col].map(priority_mapping)
-
-
-    # --------------------------------------------------------
-    # CONVERT VISITS TO NUMERIC
-    # --------------------------------------------------------
-
-    for col in total_visit_cols:
-
-        df[col] = pd.to_numeric(
-            df[col],
-            errors="coerce"
-        ).fillna(0)
-
-
-    return (
-        df,
-        minimum_standard_cols,
-        priority_cols,
-        total_visit_cols
-    )
-
-
-# ============================================================
-# LOAD DATA
-# ============================================================
-
-try:
-
-    (
-        df,
-        minimum_standard_cols,
-        priority_cols,
-        total_visit_cols
-    ) = load_data()
-
-except Exception as e:
-
-    st.error(
-        "Unable to load the Excel file."
-    )
-
-    st.code(str(e))
-
-    st.info(
-        "Make sure the Excel file is in the same folder as app.py."
-    )
-
-    st.stop()
-
-
-# ============================================================
-# CALCULATIONS
-# ============================================================
-
-
-# ------------------------------------------------------------
-# SCHOOL AND TEACHER SUMMARY
-# ------------------------------------------------------------
-
-table_1 = pd.pivot_table(
-
-    df,
-
-    index="RtR Staff Name",
-
-    values=[
-        "School Name",
-        "Teacher Name"
-    ],
-
-    aggfunc={
-        "School Name": "nunique",
-        "Teacher Name": "count"
-    },
-
-    margins=True,
-
-    margins_name="Total"
-)
-
-
-school_teacher_summary = table_1.reset_index()
-
-
-# ------------------------------------------------------------
-# TARGET VISIT
-# ------------------------------------------------------------
-
-df2 = table_1.copy()
-
-
-Target_Visit = (
-    df2["School Name"]
-    * 2
-    * 2
-    * len(total_visit_cols)
-)
-
-
-Target_Visit = pd.DataFrame(
-    Target_Visit,
-    columns=["Target_Visit"]
-)
-
-
-# ------------------------------------------------------------
-# TOTAL VISITED
-# ------------------------------------------------------------
-
-visited = pd.pivot_table(
-
-    df,
-
-    index="RtR Staff Name",
-
-    values=total_visit_cols,
-
-    aggfunc="sum",
-
-    margins=True,
-
-    margins_name="Total"
-)
-
-
-visited = visited.sum(axis=1).to_frame(
-    "Total_visited"
-)
-
-
-# ------------------------------------------------------------
-# GRADE 1 VISITS
-# ------------------------------------------------------------
-
-g1 = df[df["Grade"] == 1]
-
-
-g1 = pd.pivot_table(
-
-    g1,
-
-    index="RtR Staff Name",
-
-    values=total_visit_cols,
-
-    aggfunc="sum",
-
-    margins=True,
-
-    margins_name="Total"
-)
-
-
-g1 = g1.sum(axis=1).reset_index()
-
-
-g1.columns = [
-    "RtR Staff Name",
-    "Visit Grade_1"
-]
-
-
-Grade1 = g1
-
-
-# ------------------------------------------------------------
-# GRADE 2 VISITS
-# ------------------------------------------------------------
-
-g2 = df[df["Grade"] == 2]
-
-
-g2 = pd.pivot_table(
-
-    g2,
-
-    index="RtR Staff Name",
-
-    values=total_visit_cols,
-
-    aggfunc="sum",
-
-    margins=True,
-
-    margins_name="Total"
-)
-
-
-g2 = g2.sum(axis=1).reset_index()
-
-
-g2.columns = [
-    "RtR Staff Name",
-    "Visit Grade_2"
-]
-
-
-Grade2 = g2
-
-
-# ------------------------------------------------------------
-# MERGE GRADE VISITS
-# ------------------------------------------------------------
-
-visit_grade = Grade1.merge(
-
-    Grade2,
-
-    on="RtR Staff Name",
-
-    how="outer"
-)
-
-
-# ------------------------------------------------------------
-# VISIT GAP
-# ------------------------------------------------------------
-
-diff = Target_Visit.merge(
-
-    visited,
-
-    on="RtR Staff Name",
-
-    how="left"
-)
-
-
-diff["Gap of Visit"] = (
-    diff["Target_Visit"]
-    - diff["Total_visited"]
-)
-
-
-# ------------------------------------------------------------
-# FINAL STAFF VISIT TABLE
-# ------------------------------------------------------------
-
-Final_Total_Visited = diff.merge(
-
-    visit_grade,
-
-    on="RtR Staff Name",
-
-    how="left"
-)
-
-
-# ------------------------------------------------------------
-# MONTHLY VISITS
-# ------------------------------------------------------------
-
-monthly_visit = (
-    df[total_visit_cols]
-    .sum()
-    .reset_index()
-)
-
-
-monthly_visit.columns = [
-    "Month",
-    "Total_Visit"
-]
-
-
-monthly_visit["Month"] = (
-    monthly_visit["Month"]
-    .str.extract(r"_([A-Za-z]+)$")[0]
-)
-
-
-# ------------------------------------------------------------
-# MINIMUM STANDARD - GRADE 1
-# ------------------------------------------------------------
-
-min_std_G1 = (
-
-    df[df["Grade"] == 1]
-
-    .groupby("RtR Staff Name")[minimum_standard_cols]
-
-    .sum()
-
-    .sum(axis=1)
-
-    .reset_index(
-        name="Total Standard Meet_Grade-1"
-    )
-)
-
-
-# ------------------------------------------------------------
-# MINIMUM STANDARD - GRADE 2
-# ------------------------------------------------------------
-
-min_std_G2 = (
-
-    df[df["Grade"] == 2]
-
-    .groupby("RtR Staff Name")[minimum_standard_cols]
-
-    .sum()
-
-    .sum(axis=1)
-
-    .reset_index(
-        name="Total Standard Meet_Grade-2"
-    )
-)
-
-
-# ------------------------------------------------------------
-# MERGE MINIMUM STANDARD
-# ------------------------------------------------------------
-
-min_std = min_std_G1.merge(
-
-    min_std_G2,
-
-    on="RtR Staff Name",
-
-    how="outer"
-).fillna(0)
-
-
-min_std["Total Standard Meet"] = (
-
-    min_std["Total Standard Meet_Grade-1"]
-
-    + min_std["Total Standard Meet_Grade-2"]
-)
-
-
-# ============================================================
 # DASHBOARD CSS
 # ============================================================
 
@@ -719,7 +245,6 @@ st.markdown("""
     padding-bottom: 2rem !important;
 }
 
-
 .dashboard-title {
 
     color: #0F172A;
@@ -731,7 +256,6 @@ st.markdown("""
     margin-bottom: 5px;
 }
 
-
 .dashboard-subtitle {
 
     color: #64748B;
@@ -740,7 +264,6 @@ st.markdown("""
 
     margin-bottom: 25px;
 }
-
 
 [data-testid="stMetric"] {
 
@@ -756,12 +279,10 @@ st.markdown("""
         0px 4px 15px rgba(15,23,42,0.08);
 }
 
-
 [data-testid="stSidebar"] {
 
     background-color: #0F172A;
 }
-
 
 [data-testid="stSidebar"] * {
 
@@ -778,17 +299,13 @@ st.markdown("""
 
 with st.sidebar:
 
-    st.markdown(
-        "# 📊 PIM Dashboard"
-    )
+    st.markdown("# 📊 PIM Dashboard")
 
     st.markdown("---")
 
 
     page = st.radio(
-
         "Navigation",
-
         [
             "Home",
             "Schools",
@@ -814,13 +331,643 @@ with st.sidebar:
 
 
 # ============================================================
-# HOME
+# FILE UPLOAD
+# ============================================================
+
+st.markdown(
+    '<div class="dashboard-title">📂 Data Upload</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="dashboard-subtitle">'
+    'Upload your Excel file and select the worksheet to analyze.'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+uploaded_file = st.file_uploader(
+    "Upload Excel File",
+    type=["xlsx", "xls"],
+    help="Upload your PIM Excel dataset."
+)
+
+
+# ============================================================
+# STOP IF NO FILE
+# ============================================================
+
+if uploaded_file is None:
+
+    st.info(
+        "Please upload an Excel file to start the dashboard."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# READ EXCEL SHEET NAMES
+# ============================================================
+
+try:
+
+    excel_file = pd.ExcelFile(uploaded_file)
+
+    sheet_names = excel_file.sheet_names
+
+except Exception as e:
+
+    st.error(
+        "Unable to read the Excel file."
+    )
+
+    st.code(str(e))
+
+    st.stop()
+
+
+# ============================================================
+# SHEET SELECTION
+# ============================================================
+
+selected_sheet = st.selectbox(
+    "Select Worksheet",
+    sheet_names
+)
+
+
+# ============================================================
+# LOAD SELECTED SHEET
+# ============================================================
+
+try:
+
+    df = pd.read_excel(
+        uploaded_file,
+        sheet_name=selected_sheet,
+        skiprows=17,
+        header=None
+    )
+
+except Exception as e:
+
+    st.error(
+        "Unable to load the selected worksheet."
+    )
+
+    st.code(str(e))
+
+    st.stop()
+
+
+# ============================================================
+# CREATE COLUMN NAMES
+# ============================================================
+
+main_header = df.iloc[0].ffill()
+
+month_header = df.iloc[1]
+
+columns = []
+
+
+for main, month in zip(
+    main_header,
+    month_header
+):
+
+    if pd.notna(month):
+
+        columns.append(
+            f"{main}_{month}"
+        )
+
+    else:
+
+        columns.append(
+            str(main)
+        )
+
+
+df.columns = columns
+
+df = df.iloc[2:].reset_index(drop=True)
+
+
+# ============================================================
+# CHANGE DATE FORMAT
+# ============================================================
+
+def change_date_format(col):
+
+    if "_" in col:
+
+        prefix, date = col.rsplit("_", 1)
+
+        try:
+
+            date = pd.to_datetime(date)
+
+            return (
+                f"{prefix}_{date.strftime('%b')}"
+            )
+
+        except:
+
+            return col
+
+    return col
+
+
+df.columns = [
+    change_date_format(col)
+    for col in df.columns
+]
+
+
+# ============================================================
+# CLEAN DATA
+# ============================================================
+
+df = df.dropna(
+    axis=1,
+    how="all"
+)
+
+
+if "School Name" in df.columns:
+
+    df = df.dropna(
+        subset=["School Name"]
+    )
+
+
+if "S/N" in df.columns:
+
+    df = df.drop(
+        columns=["S/N"]
+    )
+
+
+# ============================================================
+# IDENTIFY IMPORTANT COLUMNS
+# ============================================================
+
+minimum_standard_cols = [
+
+    col
+
+    for col in df.columns
+
+    if col.startswith(
+        "Meeting Minimum Standards By Grade?"
+    )
+]
+
+
+priority_cols = [
+
+    col
+
+    for col in df.columns
+
+    if col.startswith(
+        "Teacher's Priority Area"
+    )
+]
+
+
+total_visit_cols = [
+
+    col
+
+    for col in df.columns
+
+    if col.startswith(
+        "Total Number of Visits Per Month"
+    )
+]
+
+
+# ============================================================
+# CONVERT MINIMUM STANDARD
+# ============================================================
+
+for col in minimum_standard_cols:
+
+    df[col] = df[col].map({
+
+        "No": 0,
+
+        "Yes": 1
+
+    })
+
+
+# ============================================================
+# CONVERT PRIORITY AREA
+# ============================================================
+
+priority_mapping = {
+
+    "0: No Priority Areas Achieved": 0,
+
+    "1: Mastered Instructional Routine": 1,
+
+    "2: Mastered Basic Skills": 2,
+
+    "3: Mastered Advanced Skills": 3
+
+}
+
+
+for col in priority_cols:
+
+    df[col] = df[col].map(
+        priority_mapping
+    )
+
+
+# ============================================================
+# CONVERT VISITS TO NUMERIC
+# ============================================================
+
+for col in total_visit_cols:
+
+    df[col] = pd.to_numeric(
+        df[col],
+        errors="coerce"
+    ).fillna(0)
+
+
+# ============================================================
+# DATA INFORMATION
+# ============================================================
+
+st.success(
+    f"Loaded sheet: **{selected_sheet}**"
+)
+
+
+with st.expander("📋 Data Preview"):
+
+    st.write(
+        f"Rows: {len(df):,}"
+    )
+
+    st.write(
+        f"Columns: {len(df.columns):,}"
+    )
+
+    st.dataframe(
+        df.head(10),
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+# ============================================================
+# CALCULATIONS
+# ============================================================
+
+
+# ------------------------------------------------------------
+# SCHOOL / TEACHER SUMMARY
+# ------------------------------------------------------------
+
+table_1 = pd.pivot_table(
+
+    df,
+
+    index="RtR Staff Name",
+
+    values=[
+        "School Name",
+        "Teacher Name"
+    ],
+
+    aggfunc={
+        "School Name": "nunique",
+        "Teacher Name": "count"
+    },
+
+    margins=True,
+
+    margins_name="Total"
+)
+
+
+school_teacher_summary = (
+    table_1.reset_index()
+)
+
+
+# ------------------------------------------------------------
+# TARGET VISIT
+# ------------------------------------------------------------
+
+df2 = table_1.copy()
+
+
+Target_Visit = (
+
+    df2["School Name"]
+
+    * 2
+
+    * 2
+
+    * len(total_visit_cols)
+)
+
+
+Target_Visit = pd.DataFrame(
+
+    Target_Visit,
+
+    columns=["Target_Visit"]
+)
+
+
+# ------------------------------------------------------------
+# TOTAL VISITED
+# ------------------------------------------------------------
+
+visited = pd.pivot_table(
+
+    df,
+
+    index="RtR Staff Name",
+
+    values=total_visit_cols,
+
+    aggfunc="sum",
+
+    margins=True,
+
+    margins_name="Total"
+)
+
+
+visited = (
+
+    visited
+    .sum(axis=1)
+    .to_frame("Total_visited")
+)
+
+
+# ------------------------------------------------------------
+# GRADE 1 VISITS
+# ------------------------------------------------------------
+
+g1 = df[
+    df["Grade"] == 1
+]
+
+
+g1 = pd.pivot_table(
+
+    g1,
+
+    index="RtR Staff Name",
+
+    values=total_visit_cols,
+
+    aggfunc="sum",
+
+    margins=True,
+
+    margins_name="Total"
+)
+
+
+g1 = (
+    g1
+    .sum(axis=1)
+    .reset_index()
+)
+
+
+g1.columns = [
+
+    "RtR Staff Name",
+
+    "Visit Grade_1"
+
+]
+
+
+# ------------------------------------------------------------
+# GRADE 2 VISITS
+# ------------------------------------------------------------
+
+g2 = df[
+    df["Grade"] == 2
+]
+
+
+g2 = pd.pivot_table(
+
+    g2,
+
+    index="RtR Staff Name",
+
+    values=total_visit_cols,
+
+    aggfunc="sum",
+
+    margins=True,
+
+    margins_name="Total"
+)
+
+
+g2 = (
+    g2
+    .sum(axis=1)
+    .reset_index()
+)
+
+
+g2.columns = [
+
+    "RtR Staff Name",
+
+    "Visit Grade_2"
+
+]
+
+
+# ------------------------------------------------------------
+# MERGE GRADE VISITS
+# ------------------------------------------------------------
+
+visit_grade = Grade1 = g1.merge(
+
+    g2,
+
+    on="RtR Staff Name",
+
+    how="outer"
+)
+
+
+# ------------------------------------------------------------
+# VISIT GAP
+# ------------------------------------------------------------
+
+diff = Target_Visit.merge(
+
+    visited,
+
+    on="RtR Staff Name",
+
+    how="left"
+)
+
+
+diff["Gap of Visit"] = (
+
+    diff["Target_Visit"]
+
+    - diff["Total_visited"]
+
+)
+
+
+# ------------------------------------------------------------
+# FINAL VISIT TABLE
+# ------------------------------------------------------------
+
+Final_Total_Visited = diff.merge(
+
+    visit_grade,
+
+    on="RtR Staff Name",
+
+    how="left"
+)
+
+
+# ============================================================
+# MONTHLY VISITS
+# ============================================================
+
+monthly_visit = (
+
+    df[total_visit_cols]
+
+    .sum()
+
+    .reset_index()
+)
+
+
+monthly_visit.columns = [
+
+    "Month",
+
+    "Total_Visit"
+
+]
+
+
+monthly_visit["Month"] = (
+
+    monthly_visit["Month"]
+
+    .str.extract(
+        r"_([A-Za-z]+)$"
+    )[0]
+)
+
+
+# ============================================================
+# MINIMUM STANDARD - GRADE 1
+# ============================================================
+
+min_std_G1 = (
+
+    df[df["Grade"] == 1]
+
+    .groupby(
+        "RtR Staff Name"
+    )[minimum_standard_cols]
+
+    .sum()
+
+    .sum(axis=1)
+
+    .reset_index(
+        name="Total Standard Meet_Grade-1"
+    )
+)
+
+
+# ============================================================
+# MINIMUM STANDARD - GRADE 2
+# ============================================================
+
+min_std_G2 = (
+
+    df[df["Grade"] == 2]
+
+    .groupby(
+        "RtR Staff Name"
+    )[minimum_standard_cols]
+
+    .sum()
+
+    .sum(axis=1)
+
+    .reset_index(
+        name="Total Standard Meet_Grade-2"
+    )
+)
+
+
+# ============================================================
+# MERGE STANDARDS
+# ============================================================
+
+min_std = min_std_G1.merge(
+
+    min_std_G2,
+
+    on="RtR Staff Name",
+
+    how="outer"
+
+).fillna(0)
+
+
+min_std["Total Standard Meet"] = (
+
+    min_std[
+        "Total Standard Meet_Grade-1"
+    ]
+
+    +
+
+    min_std[
+        "Total Standard Meet_Grade-2"
+    ]
+)
+
+
+# ============================================================
+# HOME PAGE
 # ============================================================
 
 if page == "Home":
 
     st.markdown(
-        '<div class="dashboard-title">Dashboard Overview</div>',
+        '<div class="dashboard-title">'
+        'Dashboard Overview'
+        '</div>',
         unsafe_allow_html=True
     )
 
@@ -833,20 +980,32 @@ if page == "Home":
 
 
     # --------------------------------------------------------
-    # KPI CALCULATIONS
+    # KPI
     # --------------------------------------------------------
 
-    total_schools = df["School Name"].nunique()
+    total_schools = (
+        df["School Name"]
+        .nunique()
+    )
 
-    total_teachers = df["Teacher Name"].nunique()
+
+    total_teachers = (
+        df["Teacher Name"]
+        .nunique()
+    )
+
 
     total_visits = int(
-        df[total_visit_cols].sum().sum()
+        df[total_visit_cols]
+        .sum()
+        .sum()
     )
 
 
     total_standard = int(
-        df[minimum_standard_cols].sum().sum()
+        df[minimum_standard_cols]
+        .sum()
+        .sum()
     )
 
 
@@ -862,19 +1021,19 @@ if page == "Home":
     if total_possible_standard > 0:
 
         standard_percentage = (
+
             total_standard
-            / total_possible_standard
-            * 100
+            /
+            total_possible_standard
+            *
+            100
+
         )
 
     else:
 
         standard_percentage = 0
 
-
-    # --------------------------------------------------------
-    # KPI CARDS
-    # --------------------------------------------------------
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -915,10 +1074,12 @@ if page == "Home":
 
 
     # --------------------------------------------------------
-    # MONTHLY VISITS CHART
+    # MONTHLY VISITS
     # --------------------------------------------------------
 
-    st.subheader("Monthly Total Visits")
+    st.subheader(
+        "Monthly Total Visits"
+    )
 
 
     fig, ax = plt.subplots(
@@ -933,6 +1094,7 @@ if page == "Home":
         monthly_visit["Total_Visit"],
 
         marker="o"
+
     )
 
 
@@ -951,6 +1113,7 @@ if page == "Home":
             ha="center",
 
             va="bottom"
+
         )
 
 
@@ -976,13 +1139,8 @@ if page == "Home":
 elif page == "Schools":
 
     st.markdown(
-        '<div class="dashboard-title">School Summary</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="dashboard-subtitle">'
-        'School distribution by RtR staff.'
+        '<div class="dashboard-title">'
+        'School Summary'
         '</div>',
         unsafe_allow_html=True
     )
@@ -990,9 +1148,12 @@ elif page == "Schools":
 
     school_table = (
 
-        df.groupby("RtR Staff Name")
+        df.groupby(
+            "RtR Staff Name"
+        )
 
         .agg(
+
             Schools=(
                 "School Name",
                 "nunique"
@@ -1002,6 +1163,7 @@ elif page == "Schools":
                 "Teacher Name",
                 "nunique"
             )
+
         )
 
         .reset_index()
@@ -1015,10 +1177,13 @@ elif page == "Schools":
         use_container_width=True,
 
         hide_index=True
+
     )
 
 
-    st.subheader("School and Teacher Summary")
+    st.subheader(
+        "School and Teacher Summary"
+    )
 
 
     st.dataframe(
@@ -1028,6 +1193,7 @@ elif page == "Schools":
         use_container_width=True,
 
         hide_index=True
+
     )
 
 
@@ -1038,7 +1204,9 @@ elif page == "Schools":
 elif page == "Teachers":
 
     st.markdown(
-        '<div class="dashboard-title">Teacher Summary</div>',
+        '<div class="dashboard-title">'
+        'Teacher Summary'
+        '</div>',
         unsafe_allow_html=True
     )
 
@@ -1053,10 +1221,12 @@ elif page == "Teachers":
         )
 
         .agg(
+
             Teachers=(
                 "Teacher Name",
                 "nunique"
             )
+
         )
 
         .reset_index()
@@ -1070,6 +1240,7 @@ elif page == "Teachers":
         use_container_width=True,
 
         hide_index=True
+
     )
 
 
@@ -1080,31 +1251,24 @@ elif page == "Teachers":
 elif page == "Visits":
 
     st.markdown(
-        '<div class="dashboard-title">Visit Monitoring</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="dashboard-subtitle">'
-        'Target visits, actual visits and visit gaps.'
+        '<div class="dashboard-title">'
+        'Visit Monitoring'
         '</div>',
         unsafe_allow_html=True
     )
 
 
-    # --------------------------------------------------------
-    # KPI
-    # --------------------------------------------------------
-
     total_target = int(
-        Final_Total_Visited["Target_Visit"]
-        .sum()
+        Final_Total_Visited[
+            "Target_Visit"
+        ].sum()
     )
 
 
     total_actual = int(
-        Final_Total_Visited["Total_visited"]
-        .sum()
+        Final_Total_Visited[
+            "Total_visited"
+        ].sum()
     )
 
 
@@ -1149,47 +1313,14 @@ elif page == "Visits":
     )
 
 
-    display_visits = Final_Total_Visited.copy()
-
-
-    display_visits = display_visits.round(0)
-
-
     st.dataframe(
 
-        display_visits,
+        Final_Total_Visited,
 
         use_container_width=True,
 
         hide_index=True
-    )
 
-
-    # --------------------------------------------------------
-    # GRADE-WISE VISITS
-    # --------------------------------------------------------
-
-    st.subheader(
-        "Grade-wise Visits"
-    )
-
-
-    grade_visit_display = Final_Total_Visited[
-        [
-            "RtR Staff Name",
-            "Visit Grade_1",
-            "Visit Grade_2"
-        ]
-    ].copy()
-
-
-    st.dataframe(
-
-        grade_visit_display,
-
-        use_container_width=True,
-
-        hide_index=True
     )
 
 
@@ -1200,21 +1331,12 @@ elif page == "Visits":
 elif page == "Standards":
 
     st.markdown(
-        '<div class="dashboard-title">Minimum Standards</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="dashboard-subtitle">'
-        'Minimum standards achieved by grade and staff.'
+        '<div class="dashboard-title">'
+        'Minimum Standards'
         '</div>',
         unsafe_allow_html=True
     )
 
-
-    # --------------------------------------------------------
-    # TOTALS
-    # --------------------------------------------------------
 
     total_g1 = int(
         min_std[
@@ -1277,6 +1399,7 @@ elif page == "Standards":
         use_container_width=True,
 
         hide_index=True
+
     )
 
 
@@ -1287,21 +1410,12 @@ elif page == "Standards":
 elif page == "Reports":
 
     st.markdown(
-        '<div class="dashboard-title">Reports</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="dashboard-subtitle">'
-        'Detailed PIM data and analysis.'
+        '<div class="dashboard-title">'
+        'Reports'
         '</div>',
         unsafe_allow_html=True
     )
 
-
-    # --------------------------------------------------------
-    # FILTERS
-    # --------------------------------------------------------
 
     col1, col2 = st.columns(2)
 
@@ -1309,36 +1423,50 @@ elif page == "Reports":
     with col1:
 
         staff_options = [
+
             "All"
+
         ] + sorted(
+
             df["RtR Staff Name"]
             .dropna()
             .unique()
             .tolist()
+
         )
 
 
         selected_staff = st.selectbox(
+
             "RtR Staff",
+
             staff_options
+
         )
 
 
     with col2:
 
         grade_options = [
+
             "All"
+
         ] + sorted(
+
             df["Grade"]
             .dropna()
             .unique()
             .tolist()
+
         )
 
 
         selected_grade = st.selectbox(
+
             "Grade",
+
             grade_options
+
         )
 
 
@@ -1348,16 +1476,26 @@ elif page == "Reports":
     if selected_staff != "All":
 
         filtered_df = filtered_df[
-            filtered_df["RtR Staff Name"]
+
+            filtered_df[
+                "RtR Staff Name"
+            ]
+
             == selected_staff
+
         ]
 
 
     if selected_grade != "All":
 
         filtered_df = filtered_df[
-            filtered_df["Grade"]
+
+            filtered_df[
+                "Grade"
+            ]
+
             == selected_grade
+
         ]
 
 
@@ -1373,23 +1511,5 @@ elif page == "Reports":
         use_container_width=True,
 
         hide_index=True
+
     )
-
-
-# ============================================================
-# FOOTER
-# ============================================================
-
-st.markdown(
-    """
-    <div style="
-        text-align:center;
-        color:#94A3B8;
-        padding:30px 0 10px 0;
-        font-size:13px;
-    ">
-        PIM Dashboard
-    </div>
-    """,
-    unsafe_allow_html=True
-)
