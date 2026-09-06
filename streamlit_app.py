@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-    st.markdown("""
+st.markdown("""
     <style>
 
     .stApp {background:linear-gradient(135deg,
@@ -28,5 +28,4 @@ st.set_page_config(
                             justify-content: center;
                             padding-top: 30px !important;
                             padding-bottom: 30px !important;}
-    </style>
-    """, unsafe_allow_html=True)
+    </style>""", unsafe_allow_html=True)
