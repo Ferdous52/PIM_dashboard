@@ -12,10 +12,11 @@ st.set_page_config(
 )
 
 def page_style():
-    return  ("""<style>.stApp{background: #F8FAFC;}.stSelectbox{background: #8F172A;}</style>""")
+    return  ("""<style>
+    .stApp{background: #F8FAFC;}
+    </style>""")
 
 
 
 st.markdown(page_style(),unsafe_allow_html=True)
 
-st.selectbox("Label",options=("Option 1", "Option 2", "Option 3"))
