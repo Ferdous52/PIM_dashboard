@@ -13,7 +13,7 @@ st.set_page_config(
 
 def page_style():
     return  ("""<style>
-    .stApp{background: #F8FAFC;}
+    .stApp{background: #2F172F;}
     </style>""")
 
 
