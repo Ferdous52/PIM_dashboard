@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 def page_style():
-    return  ("""<style>.stApp{background: #2F172F;}.stSelectbox{background: #8F172A;}</style>""")
+    return  ("""<style>.stApp{background: #F8FAFC;}.stSelectbox{background: #8F172A;}</style>""")
 
 
 
