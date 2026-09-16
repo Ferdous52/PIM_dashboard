@@ -17,6 +17,6 @@ def page_style():
     </style>""")
 
 st.balloons()
-
+on = st.toggle("Activate feature")
 st.markdown(page_style(),unsafe_allow_html=True)
 
