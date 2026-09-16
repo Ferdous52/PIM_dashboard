@@ -16,7 +16,7 @@ def page_style():
     .stApp{background: #2F172F;}
     </style>""")
 
-
+st.balloons()
 
 st.markdown(page_style(),unsafe_allow_html=True)
 
