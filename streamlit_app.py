@@ -1,6 +1,25 @@
 import streamlit as st
 
 
+# ============================================================
+# PAGE CONFIG
+# ============================================================
+
+st.set_page_config(
+    page_title="PIM Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# ============================================================
+# SESSION STATE
+# ============================================================
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+
 
 def login_page():
 
@@ -43,3 +62,10 @@ def login_page():
                 st.rerun()
             else:
                 st.error("Incorrect username or password.")
+
+
+
+
+if st.session_state.page == "login":
+
+    login_page()
