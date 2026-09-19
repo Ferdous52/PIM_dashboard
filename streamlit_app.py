@@ -63,6 +63,4 @@ def login_page():
             else:
                 st.error("Incorrect username or password.")
 
-
-
-login_page()
+    return login_page()
