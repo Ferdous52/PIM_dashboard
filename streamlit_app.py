@@ -19,6 +19,9 @@ st.set_page_config(
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
+if "page" not in st.session_state:
+    st.session_state.page = "login"
+
 
 
 def login_page():
@@ -63,6 +66,10 @@ def login_page():
                 st.error("Incorrect username or password.")
 
 
-if st.session_state.page == "login":
+if st.session_state.logged_in:
+
+    dashboard_page()
+
+else:
 
     login_page()
