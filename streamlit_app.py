@@ -65,7 +65,4 @@ def login_page():
 
 
 
-
-if st.session_state.page == "login":
-
-    login_page()
+login_page()
