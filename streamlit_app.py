@@ -12,9 +12,8 @@ st.set_page_config(
 )
 
 def page_style():
-    return  ("""<style>
-    .stApp{background: #2F172F;}
-    </style>""")
+    page = ("""<style>.stApp{background: #2F172F;}</style>""")
+    return  page
 
 st.balloons()
 on = st.toggle("Activate feature")
