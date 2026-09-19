@@ -23,7 +23,7 @@ if "page" not in st.session_state:
     st.session_state.page = "login"
 
 
-
+##########################################################################################################################################################################################################
 def login_page():
 
     st.markdown("""
@@ -64,6 +64,64 @@ def login_page():
                 st.rerun()
             else:
                 st.error("Incorrect username or password.")
+##########################################################################################################################################################################################################
+def upload_page():
+
+    st.markdown("""<style>
+    .stApp {background:linear-gradient(135deg,#F8FAFC 0%,#EEF2FF 50%,#F8FAFC 100%) !important;}
+    .main .block-container {max-width: 900px !important;margin: auto;padding-top: 5rem !important;}
+    .upload-title {text-align: center;color: #0F172A;font-size: 36px;font-weight: 700;margin-bottom: 5px;}
+    .upload-subtitle {text-align: center;color: #64748B;font-size: 16px;margin-bottom: 35px;}
+    .upload-card {background: white;padding: 35px;border-radius: 18px;border: 1px solid #E2E8F0;box-shadow: 0px 8px 30px rgba(15,23,42,0.08);}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+    st.markdown('<div class="upload-title">📂 Data Upload</div>',unsafe_allow_html=True)
+    st.markdown("""<div class="upload-subtitle">Upload your PIM Excel file and select the worksheetyou want to analyze.</div>""",unsafe_allow_html=True)
+
+    left, center, right = st.columns([1, 2, 1])
+
+    with center:
+        st.markdown('<div class="upload-card">',unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Upload Excel File",type=["xlsx", "xls"],help="Upload your PIM Excel dataset.")
+
+        if uploaded_file is not None:
+            try:
+                excel_file = pd.ExcelFile(uploaded_file)
+                sheet_names = excel_file.sheet_names
+
+                # Only this label is black
+                st.markdown("""<style>div[data-testid="stSelectbox"] label {color: black !important;}</style>""", unsafe_allow_html=True)
+                selected_sheet = st.selectbox("Select Worksheet",sheet_names)
+
+                if st.button("Continue to Dashboard →",use_container_width=True):
+                    try:
+                        df = pd.read_excel(uploaded_file,sheet_name=selected_sheet,skiprows=17,header=None)
+                        if len(df) < 2:
+                            st.error("The selected worksheet does not contain " "enough rows to create the required headers.")
+                        else:
+                            # Save data
+                            st.session_state.df = df
+                            st.session_state.selected_sheet = selected_sheet
+
+                            # Move to dashboard
+                            st.session_state.page = "dashboard"
+
+                            st.rerun()
+
+                    except Exception as e:
+
+                        st.error("Unable to load the selected worksheet.")
+                        st.code(str(e))
+
+            except Exception as e:
+
+                st.error("Unable to read the Excel file.")
+
+                st.code(str(e))
+
+        st.markdown('</div>',unsafe_allow_html=True)
 
 
 if st.session_state.logged_in:
