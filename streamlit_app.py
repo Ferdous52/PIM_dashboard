@@ -41,7 +41,6 @@ def login_page():
     """, unsafe_allow_html=True)
 
 
-
     st.markdown('<div class="pim-title">📊 PIM Dashboard</div>',unsafe_allow_html=True)
 
     st.markdown("""<div class="pim-subtitle">Monitor &nbsp;•&nbsp; Analyze &nbsp;•&nbsp; Improve</div>""",unsafe_allow_html=True)
@@ -63,4 +62,7 @@ def login_page():
             else:
                 st.error("Incorrect username or password.")
 
-    return login_page()
+
+if st.session_state.page == "login":
+
+    login_page()
